@@ -39,14 +39,20 @@ async function analyzeOne(article: Article) {
   return response.parsed_output;
 }
 
-/** Summarizes + tags every article that doesn't have an AI summary yet. */
+/**
+ * Summarizes + tags every newly-fetched article. Articles the model judges
+ * not actually relevant to semiconductors (keyword-search false positives —
+ * see ARTICLE_SYSTEM_PROMPT) are deleted rather than stored, since NewsData.io's
+ * keyword search alone is too loose to trust as a relevance filter.
+ */
 export async function summarizeAndTag(newArticles: Article[]) {
   if (newArticles.length === 0) return;
 
   const limit = pLimit(CONCURRENCY);
   const dryRun = process.env.INGEST_DRY_RUN === "true";
 
-  let succeeded = 0;
+  let kept = 0;
+  let dropped = 0;
   let failed = 0;
 
   await Promise.all(
@@ -54,17 +60,27 @@ export async function summarizeAndTag(newArticles: Article[]) {
       limit(async () => {
         try {
           const analysis = await analyzeOne(article);
-          if (!dryRun) {
-            await db
-              .update(articles)
-              .set({
-                aiSummary: analysis.summary,
-                tags: analysis.tags,
-                updatedAt: new Date(),
-              })
-              .where(eq(articles.id, article.id));
+          if (dryRun) {
+            if (analysis.isRelevant) kept += 1;
+            else dropped += 1;
+            return;
           }
-          succeeded += 1;
+
+          if (!analysis.isRelevant) {
+            await db.delete(articles).where(eq(articles.id, article.id));
+            dropped += 1;
+            return;
+          }
+
+          await db
+            .update(articles)
+            .set({
+              aiSummary: analysis.summary,
+              tags: analysis.tags,
+              updatedAt: new Date(),
+            })
+            .where(eq(articles.id, article.id));
+          kept += 1;
         } catch (err) {
           failed += 1;
           console.error(
@@ -77,6 +93,6 @@ export async function summarizeAndTag(newArticles: Article[]) {
   );
 
   console.log(
-    `[summarizeAndTag] ${succeeded} succeeded, ${failed} failed out of ${newArticles.length}`,
+    `[summarizeAndTag] ${kept} kept, ${dropped} dropped as irrelevant, ${failed} failed out of ${newArticles.length}`,
   );
 }

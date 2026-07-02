@@ -25,8 +25,7 @@ const COMPANY_KEYWORDS = [
   "Intel",
   "Micron",
   "Qualcomm",
-  "ARM",
-  "GlobalFoundries",
+  "Arm Holdings",
 ];
 
 function toOrQuery(keywords: string[]): string {

@@ -54,6 +54,7 @@ export async function fetchArticles() {
     try {
       const { articles: results } = await fetchNewsdataPage(query, apiKey);
       for (const raw of results) {
+        if (raw.duplicate) continue;
         const candidate = toNewArticle(raw, now);
         if (!byDedupeKey.has(candidate.dedupeKey)) {
           byDedupeKey.set(candidate.dedupeKey, candidate);

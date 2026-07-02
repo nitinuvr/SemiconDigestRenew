@@ -22,6 +22,7 @@ const NewsdataArticleSchema = z.object({
   source_name: z.string().nullable().optional(),
   country: z.array(z.string()).nullable().optional(),
   category: z.array(z.string()).nullable().optional(),
+  duplicate: z.boolean().optional(),
 });
 
 const NewsdataResponseSchema = z.object({
