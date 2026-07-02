@@ -72,7 +72,9 @@
   --brand: #2e6db4;
   --brand-foreground: #ffffff;
   --brand-orange: #f5921e;
-  --header-background: #dfeafb;
+  /* Header stays a fixed dark navy in both light and dark mode so the
+     white logo wordmark always has enough contrast. */
+  --header-background: #1c2733;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #e2e2e2;
   --input: #e2e2e2;
@@ -112,7 +114,6 @@
   --brand: #6ea8e0;
   --brand-foreground: #14243a;
   --brand-orange: #f7a94a;
-  --header-background: #1c2733;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);

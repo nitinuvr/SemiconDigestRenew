@@ -38,7 +38,7 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground font-body">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />
