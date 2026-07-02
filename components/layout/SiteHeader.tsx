@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { DateNav } from "@/components/home/DateNav";
 import { SearchBar } from "@/components/search/SearchBar";
 
@@ -31,7 +32,9 @@ export function SiteHeader() {
         </Link>
 
         <div className="ml-auto flex flex-1 items-center justify-end gap-3">
-          <SearchBar />
+          <Suspense fallback={<div className="hidden w-full max-w-xs sm:block" />}>
+            <SearchBar />
+          </Suspense>
           <DateNav />
         </div>
       </div>
