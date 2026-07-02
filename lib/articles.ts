@@ -43,3 +43,12 @@ export async function getMostRecentIngestDate(): Promise<string | null> {
     .limit(1);
   return row?.day ?? null;
 }
+
+/** Distinct source/publication names across all currently-retained articles. */
+export async function getDistinctSources(): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ sourceName: articles.sourceName })
+    .from(articles)
+    .orderBy(articles.sourceName);
+  return rows.map((r) => r.sourceName);
+}

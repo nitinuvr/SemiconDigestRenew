@@ -36,7 +36,7 @@ export function TagCarousel({ tag, articles }: TagCarouselProps) {
           {articles.map((article) => (
             <CarouselItem
               key={article.id}
-              className="basis-[85%] pl-4 sm:basis-1/2 lg:basis-1/3"
+              className="basis-[70%] pl-4 sm:basis-1/3 lg:basis-1/4 xl:basis-1/5"
             >
               <ArticleCard article={article} className="h-full" />
             </CarouselItem>

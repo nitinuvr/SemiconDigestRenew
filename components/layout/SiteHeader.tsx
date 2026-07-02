@@ -2,12 +2,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DateNav } from "@/components/home/DateNav";
+import { OptionsMenu } from "@/components/layout/OptionsMenu";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { SearchBar } from "@/components/search/SearchBar";
+import { getDistinctSources } from "@/lib/articles";
+import { TAXONOMY } from "@/lib/taxonomy";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const sources = await getDistinctSources();
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-border bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/85">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <OptionsMenu tags={TAXONOMY} sources={sources} />
+
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2.5"
@@ -36,6 +44,7 @@ export function SiteHeader() {
             <SearchBar />
           </Suspense>
           <DateNav />
+          <ThemeToggle />
         </div>
       </div>
     </header>

@@ -1,7 +1,7 @@
 import { format } from "date-fns";
-import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { ArticleImage } from "@/components/home/ArticleImage";
 import type { Article } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
@@ -31,25 +31,23 @@ export function ArticleCard({
       <div
         className={cn(
           "relative w-full overflow-hidden bg-secondary",
-          isFeatured ? "aspect-[16/9]" : "aspect-[4/3]",
+          isFeatured ? "aspect-[16/9]" : "aspect-[16/10]",
         )}
       >
-        {article.imageUrl ? (
-          <Image
-            src={article.imageUrl}
-            alt=""
-            fill
-            sizes={isFeatured ? "(min-width: 1024px) 60vw, 100vw" : "320px"}
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {article.sourceName}
-          </div>
-        )}
+        <ArticleImage
+          src={article.imageUrl}
+          alt=""
+          sourceName={article.sourceName}
+          featured={isFeatured}
+        />
       </div>
 
-      <div className={cn("flex flex-1 flex-col gap-2", isFeatured ? "p-6" : "p-4")}>
+      <div
+        className={cn(
+          "flex flex-1 flex-col gap-1.5",
+          isFeatured ? "p-6" : "p-3",
+        )}
+      >
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span className="font-medium text-foreground/80">
             {article.sourceName}
@@ -66,7 +64,7 @@ export function ArticleCard({
         <h3
           className={cn(
             "font-heading leading-snug font-semibold tracking-tight text-foreground",
-            isFeatured ? "text-2xl sm:text-3xl" : "text-base",
+            isFeatured ? "text-2xl sm:text-3xl" : "text-sm",
           )}
         >
           {article.title}
@@ -76,7 +74,7 @@ export function ArticleCard({
           <p
             className={cn(
               "text-muted-foreground",
-              isFeatured ? "text-base line-clamp-3" : "text-sm line-clamp-2",
+              isFeatured ? "text-base line-clamp-3" : "text-xs line-clamp-2",
             )}
           >
             {article.aiSummary}
