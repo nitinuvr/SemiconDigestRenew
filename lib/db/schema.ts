@@ -3,6 +3,7 @@ import {
   customType,
   date,
   index,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -57,12 +58,14 @@ export const articles = pgTable(
   ],
 );
 
+export type DigestBulletRecord = { text: string; articleId: string | null };
+
 export const dailyDigests = pgTable(
   "daily_digests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     digestDate: date("digest_date", { mode: "string" }).notNull(),
-    bullets: text("bullets").array().notNull(),
+    bullets: jsonb("bullets").notNull().$type<DigestBulletRecord[]>(),
     articleIds: uuid("article_ids")
       .array()
       .notNull()

@@ -20,7 +20,7 @@ export function ArticleImage({
 
   if (!src || failed) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <div className="flex h-full w-full items-center justify-center text-xs font-medium text-muted-foreground">
         {sourceName}
       </div>
     );

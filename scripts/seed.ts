@@ -145,7 +145,12 @@ async function main() {
 
   console.log(`Seeding ${seedArticles.length} articles for ${dateKey}...`);
 
-  const inserted = await db
+  // onConflictDoUpdate (rather than onConflictDoNothing) so re-running the
+  // seed script is idempotent: it always returns every article's id (fresh
+  // or pre-existing) and refreshes fetchedAt/publishedAt to "now", instead
+  // of silently returning nothing for articles already seeded on a prior
+  // run — which previously left digest bullets with no articleId to link.
+  const seeded = await db
     .insert(articles)
     .values(
       seedArticles.map((a) => ({
@@ -163,12 +168,18 @@ async function main() {
         tags: a.tags,
       })),
     )
-    .onConflictDoNothing({ target: articles.dedupeKey })
-    .returning({ id: articles.id, title: articles.title });
+    .onConflictDoUpdate({
+      target: articles.dedupeKey,
+      set: {
+        publishedAt: sql`excluded.published_at`,
+        fetchedAt: sql`excluded.fetched_at`,
+      },
+    })
+    .returning({ id: articles.id, url: articles.url });
 
-  console.log(`Inserted ${inserted.length} articles.`);
+  console.log(`Seeded ${seeded.length} articles (inserted or refreshed).`);
 
-  const leadArticle = inserted[0];
+  const idByUrl = new Map(seeded.map((a) => [a.url, a.id]));
 
   await db
     .insert(dailyDigests)
@@ -180,9 +191,12 @@ async function main() {
         "Samsung Foundry landed a major 2nm automotive order, signaling real traction against TSMC in leading-edge nodes.",
         "ASML posted record bookings on EUV demand, confirming foundries are still committing heavily to next-gen capacity.",
         "Memory prices are climbing again as AI servers soak up DRAM and NAND supply faster than fabs can expand.",
-      ],
-      articleIds: inserted.map((a) => a.id),
-      leadArticleId: leadArticle?.id ?? null,
+      ].map((text, index) => ({
+        text,
+        articleId: idByUrl.get(seedArticles[index].url) ?? null,
+      })),
+      articleIds: seeded.map((a) => a.id),
+      leadArticleId: idByUrl.get(seedArticles[0].url) ?? null,
     })
     .onConflictDoUpdate({
       target: dailyDigests.digestDate,

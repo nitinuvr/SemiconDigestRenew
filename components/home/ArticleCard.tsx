@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { AiSummaryTooltip } from "@/components/home/AiSummaryTooltip";
 import { ArticleImage } from "@/components/home/ArticleImage";
 import type { Article } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
@@ -23,8 +24,9 @@ export function ArticleCard({
       href={article.url}
       target="_blank"
       rel="noopener noreferrer"
+      data-article-id={article.id}
       className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        "group flex h-full scroll-mt-24 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
         className,
       )}
     >
@@ -34,6 +36,11 @@ export function ArticleCard({
           isFeatured ? "aspect-[16/9]" : "aspect-[16/10]",
         )}
       >
+        {isFeatured && (
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-brand-orange px-3 py-1 text-xs font-semibold text-brand-orange-foreground shadow-sm">
+            Top Story
+          </span>
+        )}
         <ArticleImage
           src={article.imageUrl}
           alt=""
@@ -71,14 +78,17 @@ export function ArticleCard({
         </h3>
 
         {article.aiSummary && (
-          <p
-            className={cn(
-              "text-muted-foreground",
-              isFeatured ? "text-base line-clamp-3" : "text-xs line-clamp-2",
-            )}
-          >
-            {article.aiSummary}
-          </p>
+          <div className="flex items-start gap-1.5">
+            <AiSummaryTooltip summary={article.aiSummary} featured={isFeatured} />
+            <p
+              className={cn(
+                "min-w-0 text-muted-foreground",
+                isFeatured ? "text-base line-clamp-3" : "text-xs line-clamp-2",
+              )}
+            >
+              {article.aiSummary}
+            </p>
+          </div>
         )}
 
         {article.tags.length > 0 && (
@@ -87,7 +97,7 @@ export function ArticleCard({
               <Badge
                 key={tag}
                 variant="secondary"
-                className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-foreground/70"
+                className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-foreground/70"
               >
                 {tag}
               </Badge>

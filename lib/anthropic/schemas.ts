@@ -24,10 +24,21 @@ export type ArticleAnalysis = z.infer<typeof ArticleAnalysisSchema>;
 
 export const DigestResultSchema = z.object({
   bullets: z
-    .array(z.string())
+    .array(
+      z.object({
+        text: z
+          .string()
+          .describe("A single self-contained sentence summarizing the story."),
+        articleId: z
+          .string()
+          .describe(
+            "The id (from the ids given) of the article this bullet is primarily about.",
+          ),
+      }),
+    )
     .length(5)
     .describe(
-      "Exactly 5 bullet points summarizing the most important semiconductor news of the day, each a single self-contained sentence.",
+      "Exactly 5 bullet points summarizing the most important semiconductor news of the day, each paired with the id of the article it's about.",
     ),
   leadArticleId: z
     .string()

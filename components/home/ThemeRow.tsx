@@ -13,7 +13,7 @@ export function ThemeRow({ tagCounts }: ThemeRowProps) {
   return (
     <section className="border-y border-border bg-surface">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-        <h2 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <h2 className="mb-3 font-heading text-sm font-semibold tracking-tight text-foreground/80">
           Today&apos;s top themes
         </h2>
         <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
