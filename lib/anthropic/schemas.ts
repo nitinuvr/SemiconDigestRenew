@@ -20,9 +20,14 @@ export const ArticleAnalysisSchema = z.object({
     ),
   companies: z
     .array(z.string())
-    .max(5)
+    // Generous ceiling, not the real cap — a broad market-roundup article
+    // can legitimately name more than 5 companies. The model is asked for
+    // 0-5, but a hard .max(5) here would throw and drop the whole article
+    // on any overshoot instead of gracefully truncating; the real 5-item
+    // cap is enforced defensively in summarizeAndTag.ts via .slice(0, 5).
+    .max(15)
     .describe(
-      "0-5 company/organization names explicitly and substantively discussed in the article (not incidental mentions). Prefer common short names (\"TSMC\", \"Samsung\", \"Nvidia\") over full legal names. Empty if isRelevant is false or no specific company is central to the story.",
+      "Company/organization names explicitly and substantively discussed in the article (not incidental mentions), most important first — aim for 0-5. Prefer common short names (\"TSMC\", \"Samsung\", \"Nvidia\") over full legal names. Empty if isRelevant is false or no specific company is central to the story.",
     ),
 });
 

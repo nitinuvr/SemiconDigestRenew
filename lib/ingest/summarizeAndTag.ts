@@ -77,7 +77,7 @@ export async function summarizeAndTag(newArticles: Article[]) {
             .set({
               aiSummary: analysis.summary,
               tags: analysis.tags,
-              companies: analysis.companies,
+              companies: analysis.companies.slice(0, 5),
               updatedAt: new Date(),
             })
             .where(eq(articles.id, article.id));
