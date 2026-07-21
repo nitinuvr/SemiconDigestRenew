@@ -92,7 +92,7 @@ export function ArticleCard({
         )}
 
         {article.tags.length > 0 && (
-          <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
+          <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-2">
             {article.tags.slice(0, isFeatured ? 4 : 2).map((tag) => (
               <Badge
                 key={tag}
@@ -102,6 +102,11 @@ export function ArticleCard({
                 {tag}
               </Badge>
             ))}
+            {article.tags.length > (isFeatured ? 4 : 2) && (
+              <span className="text-xs font-medium text-muted-foreground">
+                +{article.tags.length - (isFeatured ? 4 : 2)}
+              </span>
+            )}
           </div>
         )}
       </div>

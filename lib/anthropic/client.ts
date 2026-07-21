@@ -16,6 +16,6 @@ export function getAnthropicClient(): Anthropic {
 }
 
 export const ARTICLE_MODEL =
-  process.env.ANTHROPIC_ARTICLE_MODEL ?? "claude-opus-4-8";
+  process.env.ANTHROPIC_ARTICLE_MODEL ?? "claude-sonnet-5";
 export const DIGEST_MODEL =
-  process.env.ANTHROPIC_DIGEST_MODEL ?? "claude-opus-4-8";
+  process.env.ANTHROPIC_DIGEST_MODEL ?? "claude-sonnet-5";

@@ -1,27 +1,35 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ArchiveFiltersProps = {
   tags: readonly string[];
   sources: string[];
+  companies: string[];
   activeTag?: string;
   activeSource?: string;
+  activeCompany?: string;
 };
-
-const selectClassName =
-  "h-8 min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 export function ArchiveFilters({
   tags,
   sources,
+  companies,
   activeTag,
   activeSource,
+  activeCompany,
 }: ArchiveFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  function setParam(key: "tag" | "source", value: string) {
+  function setParam(key: "tag" | "source" | "company", value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) {
       params.set(key, value);
@@ -31,37 +39,60 @@ export function ArchiveFilters({
     router.push(`/archive?${params}`);
   }
 
-  const hasActiveFilters = Boolean(activeTag || activeSource);
+  const hasActiveFilters = Boolean(activeTag || activeSource || activeCompany);
 
   return (
     <div className="mb-6 flex flex-wrap items-center gap-3">
-      <select
-        aria-label="Filter by tag"
-        className={selectClassName}
-        value={activeTag ?? ""}
-        onChange={(e) => setParam("tag", e.target.value)}
+      <Select
+        value={activeTag ?? null}
+        onValueChange={(value) => setParam("tag", value)}
       >
-        <option value="">All tags</option>
-        {tags.map((tag) => (
-          <option key={tag} value={tag}>
-            {tag}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger aria-label="Filter by tag">
+          <SelectValue placeholder="All tags" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={null}>All tags</SelectItem>
+          {tags.map((tag) => (
+            <SelectItem key={tag} value={tag}>
+              {tag}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      <select
-        aria-label="Filter by source"
-        className={selectClassName}
-        value={activeSource ?? ""}
-        onChange={(e) => setParam("source", e.target.value)}
+      <Select
+        value={activeSource ?? null}
+        onValueChange={(value) => setParam("source", value)}
       >
-        <option value="">All sources</option>
-        {sources.map((source) => (
-          <option key={source} value={source}>
-            {source}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger aria-label="Filter by source">
+          <SelectValue placeholder="All sources" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={null}>All sources</SelectItem>
+          {sources.map((source) => (
+            <SelectItem key={source} value={source}>
+              {source}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={activeCompany ?? null}
+        onValueChange={(value) => setParam("company", value)}
+      >
+        <SelectTrigger aria-label="Filter by company">
+          <SelectValue placeholder="All companies" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={null}>All companies</SelectItem>
+          {companies.map((company) => (
+            <SelectItem key={company} value={company}>
+              {company}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {hasActiveFilters && (
         <button

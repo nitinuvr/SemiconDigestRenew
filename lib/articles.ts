@@ -59,18 +59,30 @@ export async function getDistinctSources(): Promise<string[]> {
   return rows.map((r) => r.sourceName);
 }
 
+/** Distinct company/organization names across all currently-retained articles. */
+export async function getDistinctCompanies(): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({
+      company: sql<string>`unnest(${articles.companies})`.as("company"),
+    })
+    .from(articles)
+    .orderBy(sql`company`);
+  return rows.map((r) => r.company);
+}
+
 export const ARCHIVE_PAGE_SIZE = 24;
 
-export type ArchiveFilters = { tag?: Tag; source?: string };
+export type ArchiveFilters = { tag?: Tag; source?: string; company?: string };
 
-/** All currently-retained articles, newest published first, optionally filtered by tag and/or source. */
+/** All currently-retained articles, newest published first, optionally filtered by tag, source, and/or company. */
 export async function getArchiveArticles(
-  { tag, source }: ArchiveFilters,
+  { tag, source, company }: ArchiveFilters,
   { limit = ARCHIVE_PAGE_SIZE, offset = 0 }: { limit?: number; offset?: number } = {},
 ): Promise<{ articles: Article[]; hasMore: boolean }> {
   const conditions = [];
   if (tag) conditions.push(sql`${articles.tags} @> ARRAY[${tag}]::text[]`);
   if (source) conditions.push(eq(articles.sourceName, source));
+  if (company) conditions.push(sql`${articles.companies} @> ARRAY[${company}]::text[]`);
 
   const rows = await db
     .select()

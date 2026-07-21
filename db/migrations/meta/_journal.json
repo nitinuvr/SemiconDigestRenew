@@ -15,6 +15,13 @@
       "when": 1784601048047,
       "tag": "0001_even_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784609570435,
+      "tag": "0002_red_scalphunter",
+      "breakpoints": true
     }
   ]
 }
