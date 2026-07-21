@@ -18,6 +18,12 @@ export const ArticleAnalysisSchema = z.object({
     .describe(
       "1-4 tags from the fixed taxonomy that best characterize this article's subject matter. Leave empty if isRelevant is false.",
     ),
+  companies: z
+    .array(z.string())
+    .max(5)
+    .describe(
+      "0-5 company/organization names explicitly and substantively discussed in the article (not incidental mentions). Prefer common short names (\"TSMC\", \"Samsung\", \"Nvidia\") over full legal names. Empty if isRelevant is false or no specific company is central to the story.",
+    ),
 });
 
 export type ArticleAnalysis = z.infer<typeof ArticleAnalysisSchema>;

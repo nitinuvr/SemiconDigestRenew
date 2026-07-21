@@ -3,23 +3,29 @@ import { ArchiveGrid } from "@/components/archive/ArchiveGrid";
 import {
   ARCHIVE_PAGE_SIZE,
   getArchiveArticles,
+  getDistinctCompanies,
   getDistinctSources,
 } from "@/lib/articles";
 import { RETENTION_DAYS } from "@/lib/dates";
 import { isTag, TAXONOMY } from "@/lib/taxonomy";
 
 type PageProps = {
-  searchParams: Promise<{ tag?: string; source?: string }>;
+  searchParams: Promise<{ tag?: string; source?: string; company?: string }>;
 };
 
 export default async function ArchivePage({ searchParams }: PageProps) {
-  const { tag: tagParam, source } = await searchParams;
+  const { tag: tagParam, source, company } = await searchParams;
   const tag = tagParam && isTag(tagParam) ? tagParam : undefined;
 
-  const [{ articles: initialArticles, hasMore }, sources] = await Promise.all([
-    getArchiveArticles({ tag, source }, { limit: ARCHIVE_PAGE_SIZE, offset: 0 }),
-    getDistinctSources(),
-  ]);
+  const [{ articles: initialArticles, hasMore }, sources, companies] =
+    await Promise.all([
+      getArchiveArticles(
+        { tag, source, company },
+        { limit: ARCHIVE_PAGE_SIZE, offset: 0 },
+      ),
+      getDistinctSources(),
+      getDistinctCompanies(),
+    ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -33,16 +39,19 @@ export default async function ArchivePage({ searchParams }: PageProps) {
       <ArchiveFilters
         tags={TAXONOMY}
         sources={sources}
+        companies={companies}
         activeTag={tag}
         activeSource={source}
+        activeCompany={company}
       />
 
       <ArchiveGrid
-        key={`${tag ?? ""}:${source ?? ""}`}
+        key={`${tag ?? ""}:${source ?? ""}:${company ?? ""}`}
         initialArticles={initialArticles}
         initialHasMore={hasMore}
         tag={tag}
         source={source}
+        company={company}
       />
     </div>
   );

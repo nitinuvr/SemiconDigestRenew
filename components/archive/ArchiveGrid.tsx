@@ -10,6 +10,7 @@ type ArchiveGridProps = {
   initialHasMore: boolean;
   tag?: string;
   source?: string;
+  company?: string;
 };
 
 type ArchiveApiResponse = {
@@ -39,6 +40,7 @@ export function ArchiveGrid({
   initialHasMore,
   tag,
   source,
+  company,
 }: ArchiveGridProps) {
   const [articles, setArticles] = useState(initialArticles);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -50,6 +52,7 @@ export function ArchiveGrid({
       const params = new URLSearchParams();
       if (tag) params.set("tag", tag);
       if (source) params.set("source", source);
+      if (company) params.set("company", company);
       params.set("offset", String(articles.length));
 
       const res = await fetch(`/api/archive?${params}`);

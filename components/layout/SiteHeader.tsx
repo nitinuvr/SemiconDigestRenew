@@ -40,7 +40,14 @@ export async function SiteHeader() {
         </Link>
 
         <div className="ml-auto flex flex-1 items-center justify-end gap-3">
-          <Suspense fallback={<div className="hidden w-full max-w-xs sm:block" />}>
+          <Suspense
+            fallback={
+              <>
+                <div className="hidden w-full max-w-xs sm:block" />
+                <div className="h-8 w-8 rounded-full border border-border sm:hidden" />
+              </>
+            }
+          >
             <SearchBar />
           </Suspense>
           <DateNav />

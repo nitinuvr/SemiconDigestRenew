@@ -39,6 +39,10 @@ export const articles = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    companies: text("companies")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     searchVector: tsvector("search_vector").generatedAlwaysAs(
       sql`setweight(to_tsvector('english', coalesce(title, '')), 'A') || setweight(to_tsvector('english', coalesce(ai_summary, '')), 'B') || setweight(to_tsvector('english', coalesce(content_snippet, '')), 'C')`,
     ),
@@ -52,6 +56,7 @@ export const articles = pgTable(
   (table) => [
     uniqueIndex("articles_dedupe_key_idx").on(table.dedupeKey),
     index("articles_tags_gin_idx").using("gin", table.tags),
+    index("articles_companies_gin_idx").using("gin", table.companies),
     index("articles_search_vector_gin_idx").using("gin", table.searchVector),
     index("articles_fetched_at_idx").on(table.fetchedAt),
     index("articles_published_at_idx").on(table.publishedAt),

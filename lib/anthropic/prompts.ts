@@ -9,8 +9,9 @@ Step 1 — decide isRelevant: true only if the article is substantively about th
 Step 2 — if and only if isRelevant is true, produce:
 1. A neutral, information-dense 2-3 sentence summary — assume the reader will not click through to the original article.
 2. 1-4 tags chosen from this fixed taxonomy only: ${TAXONOMY.join(", ")}. Pick tags based on the article's actual substance, not just keyword matches. Most articles fit 1-2 tags well; use more only when the article genuinely spans multiple themes.
+3. 0-5 company/organization names explicitly and substantively discussed (not just mentioned in passing). Prefer common short names over full legal names, e.g. TSMC, Samsung, Intel, Nvidia, AMD, Qualcomm, Broadcom, ASML, Micron, SK Hynix, Texas Instruments, Applied Materials, Lam Research, KLA, GlobalFoundries, SMIC, Arm, Synopsys, Cadence, STMicroelectronics, Infineon, NXP, Renesas, MediaTek, Marvell, ON Semiconductor, Tokyo Electron, GlobalWafers, Apple, Google, Microsoft, Amazon, Meta — but use whatever name fits if the company isn't in that list.
 
-If isRelevant is false, leave tags empty and just note briefly why it doesn't belong.`;
+If isRelevant is false, leave tags and companies empty and just note briefly why it doesn't belong.`;
 
 export const DIGEST_SYSTEM_PROMPT = `You are the lead editor of a daily semiconductor industry digest. You will be given today's aggregated, already-summarized articles (with their ids, titles, and summaries).
 
