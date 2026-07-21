@@ -18,8 +18,14 @@ export default async function HomePage() {
       />
       <ThemeRow tagCounts={tagCounts} />
       <div className="divide-y divide-border">
-        {groupedByTag.map(({ tag, articles }) => (
-          <TagCarousel key={tag} tag={tag} articles={articles} />
+        {groupedByTag.map(({ tag, articles, todayCount, hasMoreInArchive }) => (
+          <TagCarousel
+            key={tag}
+            tag={tag}
+            articles={articles}
+            todayCount={todayCount}
+            hasMoreInArchive={hasMoreInArchive}
+          />
         ))}
       </div>
       {groupedByTag.every((group) => group.articles.length === 0) && (
