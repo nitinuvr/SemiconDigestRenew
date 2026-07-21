@@ -28,6 +28,8 @@ No test suite exists. `npx tsc --noEmit` and `npx eslint .` are the correctness 
 
 Local secrets live in `.env` (gitignored, and also `.vercelignore`d — see Deployment below). Copy from `.env.example`.
 
+**⚠️ There is no dev/prod database split.** Local `.env`'s `DATABASE_URL` and Vercel's production `DATABASE_URL` point at the *same* Neon database (verified: identical host + `neondb` name). `npm run seed` and `npm run test-ingest` write directly to what the live site reads. Concretely this has already caused a real incident: seed data landed in production, and a schema migration applied locally (`npm run db:migrate`) went live against the shared DB while the *old* code was still deployed — the mismatch made production's ISR revalidation fail silently every 5 minutes, so it kept serving an increasingly stale cached page instead of erroring visibly. If you run a migration or seed script locally, get the corresponding code deployed promptly, and clean up any seed rows (`dedupeKey LIKE 'seed:%'`) when done experimenting.
+
 ## Architecture
 
 ### Ingestion pipeline
@@ -44,6 +46,22 @@ NewsData.io's `q` param has a hard **100-character limit** (returns `Unsupported
 ### Day bucketing
 
 Everything buckets articles by **`fetchedAt`'s UTC calendar day**, not `publishedAt` — `lib/articles.ts`'s `getArticlesFetchedOn(dateKey)` is the core query, used by both the homepage and `/articles/[date]`. `lib/dayData.ts`'s `getDayData()` wraps it with a fallback: if "today" has no articles yet (cron hasn't run), it falls back to the most recent day that does, so the homepage is never empty by default. Date-specific pages (`/articles/[date]`) skip that fallback and 404 outside the retention window.
+
+`lib/dates.ts`'s `todayKey()` computes this via `new Date().toISOString().slice(0, 10)` — genuinely UTC, no ambient-timezone dependency, unlike `date-fns`'s `format()` which uses the local runtime timezone. (This used to be a real bug: `todayKey()` claimed UTC in its doc comment but used local-timezone `format()`, which only happened to agree with the DB on Vercel because its runtime defaults to UTC — it silently disagreed on any non-UTC dev machine, especially in the evening local time after UTC midnight had already ticked over.) The SQL day-range comparisons in `getArticlesFetchedOn()` and `generateDigest()` force UTC explicitly too (`(dateKey || 'T00:00:00Z')::timestamptz`) rather than relying on Postgres's session timezone happening to be UTC. `isWithinRetention()` does a plain string comparison between `yyyy-MM-dd` keys (valid since ISO date strings sort lexicographically the same as chronologically) but still validates real calendar correctness via `isValid(parseISO(key))` first — a pure string-range check alone would accept a non-existent date like `2026-06-31` and crash the SQL cast downstream instead of 404ing.
+
+### Digest bullets link to their source article
+
+`dailyDigests.bullets` is `jsonb` (`DigestBulletRecord[]` in `lib/db/schema.ts`, `{ text, articleId }`), not a plain `text[]` — Claude's structured digest output (`DigestResultSchema` in `lib/anthropic/schemas.ts`) pairs each bullet with the id of the article it's about, validated in `generateDigest.ts` against that day's candidate articles (falls back to `articleId: null` if the model returns something not in the candidate set, mirroring the existing `leadArticleId` validation). `getDayData()` resolves each bullet's `articleId` into a `url` using articles it's already loaded into memory (no extra query) — see `DigestBullet` type in `components/home/DigestSidebar.tsx`.
+
+Clicking a bullet in `DigestSidebar` (a client component) looks for `[data-article-id="<id>"]` on the page (every `ArticleCard` carries this attribute) and, if found, scroll-jumps to and briefly rings-highlights it instead of navigating; if the article isn't rendered anywhere on the current page (the digest draws from up to 40 candidates, but only the day's top-15 tags get carousels), the bullet is a normal external link and just opens the article. Bullets with no resolved `articleId`/`url` (historical digests generated before this feature existed) render as plain unlinked text.
+
+**Migration gotcha**: converting `bullets` from `text[]` to `jsonb` couldn't use a plain `ALTER COLUMN ... TYPE jsonb USING (...)` — Postgres rejects a subquery (needed for the `unnest`/`jsonb_agg` transform) inside a column `USING` transform expression. The working pattern (see `db/migrations/0001_even_lake.sql`) is add a new nullable column → `UPDATE` it via a correlated subquery (subqueries *are* allowed in `UPDATE ... SET`) → `SET NOT NULL` → drop the old column → rename. Worth remembering for any future column type change that needs a non-trivial per-row transform.
+
+### AI-provenance tooltip
+
+Each `ArticleCard`'s summary has a small sparkle icon (`components/home/AiSummaryTooltip.tsx`) that shows the full, untruncated AI summary in a tooltip on hover/focus — the visible `<p>` is `line-clamp`ed, so this is the only way to read a long summary without leaving the page. Built on a new `components/ui/tooltip.tsx` (Base UI wrapper, same pattern as `popover.tsx`), with a `TooltipProvider` in `app/layout.tsx` for shared open/close delay grouping across the whole page.
+
+**RSC gotcha**: `ArticleCard` is a Server Component. `AiSummaryTooltip` has to be its own separate `"use client"` component — an inline `onClick` handler constructed directly inside `ArticleCard`'s JSX (even just to `preventDefault()` the trigger span from bubbling into the card's outer `<Link>`) throws "Event handlers cannot be passed to Client Component props" at render time. This isn't a one-off render error either: it took the whole dev server down, stuck retrying the same failing render in a tight loop (visible in `.next/dev/logs/next-development.log`) until the code was fixed — a good reminder to check that log file directly (rather than assuming a hung `next dev` is a slow recompile) when a page or the whole server goes unresponsive.
 
 ### Tag taxonomy
 
@@ -67,7 +85,9 @@ Postgres full-text search, not an external service — `articles.searchVector` i
 
 ### Design system
 
-Tokens live in `app/globals.css` (`--brand`, `--brand-orange`, `--header-background`, `--surface`, etc.), registered into Tailwind v4 via `@theme inline`. Dark mode is `next-themes` class-based (`.dark` overrides in the same file) — toggle in `components/layout/ThemeToggle.tsx`. Headings use `font-heading` (Space Grotesk), body uses `font-body` (Inter), both wired via `next/font` in `app/layout.tsx`.
+Tokens live in `app/globals.css` (`--brand`, `--brand-orange`/`--brand-orange-foreground`, `--header-background`, `--surface`, etc.), registered into Tailwind v4 via `@theme inline`. Dark mode is `next-themes` class-based (`.dark` overrides in the same file) — toggle in `components/layout/ThemeToggle.tsx`. Headings use `font-heading` (Space Grotesk), body uses `font-body` (Inter), both wired via `next/font` in `app/layout.tsx`.
+
+`--brand-orange` (paired with `--brand-orange-foreground` for accessible contrast — plain white text on it fails AA) is used exactly once: the "Top Story" badge on the homepage hero's `ArticleCard` (`size="featured"`). Keep it that single-purpose/restrained; an `/impeccable` critique flagged generic uppercase-tracked "eyebrow" labels as an AI-slop tell, so section labels (`DigestSidebar`, `ThemeRow`) intentionally use normal-case text instead of that convention — don't reintroduce it.
 
 `TagCarousel`'s Embla `opts` use responsive `breakpoints` so the next/prev arrows page by however many cards are actually visible at that width (`slidesToScroll: 3/4/5` matching the `basis-1/3`/`1/4`/`1/5` breakpoints), with `dragFree: true` below `sm` for continuous touch-scroll instead of snapping one card at a time. Keep `slidesToScroll` in sync with the `CarouselItem` basis classes if either changes.
 
@@ -82,3 +102,4 @@ Deployed via the **Vercel CLI directly** (`vercel --prod --yes`), not just git p
 - **`.vercelignore` excludes `.env`** — without it, `vercel --prod` uploads the whole working directory (not just git-tracked files) and bundles your local `.env` into the build source. Vercel's own env vars still take precedence at runtime, but don't remove that ignore file.
 - The production domain (`nitin-semicon-digest.vercel.app`) is registered as a real **Project Domain** (Settings → Domains in the dashboard), not a CLI-set alias. That distinction matters twice: (1) only real Domains auto-follow every new production deployment — a bare `vercel alias set` has to be re-run manually after each deploy; (2) only real Domains are exempt from the project's `ssoProtection: all_except_custom_domains` setting — a CLI-only alias redirects visitors to a Vercel login page.
 - `vercel.json` schedules the cron at `0 11 * * *` (11:00 UTC daily) hitting `/api/cron/daily-ingest`, authenticated via `Authorization: Bearer $CRON_SECRET`.
+- If production looks stuck serving stale content (check response headers for `X-Vercel-Cache: STALE` with a large `Age`), suspect a DB schema change applied ahead of deployed code — see the shared-database warning above. Deploying the matching code is usually the fix.
