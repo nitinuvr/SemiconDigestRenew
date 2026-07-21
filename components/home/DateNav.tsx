@@ -24,6 +24,7 @@ export function DateNav() {
             variant="outline"
             size="sm"
             className="gap-2 rounded-full border-border"
+            aria-label="Browse by date"
           >
             <CalendarDays className="h-4 w-4" />
             <span className="hidden sm:inline">Browse by date</span>

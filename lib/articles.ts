@@ -10,8 +10,11 @@ export async function getArticlesFetchedOn(dateKey: string): Promise<Article[]> 
     .from(articles)
     .where(
       and(
-        gte(articles.fetchedAt, sql`${dateKey}::date`),
-        lt(articles.fetchedAt, sql`(${dateKey}::date + interval '1 day')`),
+        gte(articles.fetchedAt, sql`(${dateKey} || 'T00:00:00Z')::timestamptz`),
+        lt(
+          articles.fetchedAt,
+          sql`(${dateKey} || 'T00:00:00Z')::timestamptz + interval '1 day'`,
+        ),
       ),
     )
     .orderBy(desc(articles.publishedAt));
@@ -38,7 +41,9 @@ export async function getArticleById(id: string): Promise<Article | null> {
 /** Most recent day (within retention) that actually has ingested articles. */
 export async function getMostRecentIngestDate(): Promise<string | null> {
   const [row] = await db
-    .select({ day: sql<string>`to_char(${articles.fetchedAt}, 'YYYY-MM-DD')` })
+    .select({
+      day: sql<string>`to_char(${articles.fetchedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
+    })
     .from(articles)
     .orderBy(desc(articles.fetchedAt))
     .limit(1);

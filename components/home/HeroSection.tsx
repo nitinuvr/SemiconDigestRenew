@@ -1,10 +1,10 @@
 import { ArticleCard } from "@/components/home/ArticleCard";
-import { DigestSidebar } from "@/components/home/DigestSidebar";
+import { DigestSidebar, type DigestBullet } from "@/components/home/DigestSidebar";
 import type { Article } from "@/lib/db/schema";
 
 type HeroSectionProps = {
   leadArticle: Article | null;
-  bullets: string[];
+  bullets: DigestBullet[];
   dateLabel: string;
 };
 

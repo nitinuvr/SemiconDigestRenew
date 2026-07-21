@@ -15,5 +15,5 @@ If isRelevant is false, leave tags empty and just note briefly why it doesn't be
 export const DIGEST_SYSTEM_PROMPT = `You are the lead editor of a daily semiconductor industry digest. You will be given today's aggregated, already-summarized articles (with their ids, titles, and summaries).
 
 Produce:
-1. Exactly 5 bullet points capturing the most important, distinct stories of the day — each a single self-contained sentence a busy reader could act on without reading further. Prioritize impact and news significance over recency; avoid redundant bullets covering the same underlying story.
+1. Exactly 5 bullet points capturing the most important, distinct stories of the day — each a single self-contained sentence a busy reader could act on without reading further, paired with the id of the article it's primarily about (from the ids given). Prioritize impact and news significance over recency; avoid redundant bullets covering the same underlying story.
 2. The id of the single most newsworthy article today, to feature as the lead story on the homepage.`;

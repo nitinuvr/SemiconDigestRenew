@@ -79,8 +79,8 @@ export function TagCarousel({
             </CarouselItem>
           )}
         </CarouselContent>
-        <CarouselPrevious className="left-0 -translate-x-1/2 border-border" />
-        <CarouselNext className="right-0 translate-x-1/2 border-border" />
+        <CarouselPrevious className="left-2 translate-x-0 border-border sm:left-0 sm:-translate-x-1/2" />
+        <CarouselNext className="right-2 translate-x-0 border-border sm:right-0 sm:translate-x-1/2" />
       </Carousel>
     </section>
   );

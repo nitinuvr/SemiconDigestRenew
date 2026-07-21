@@ -16,8 +16,11 @@ export async function generateDigest(dateKey: string) {
     .from(articles)
     .where(
       and(
-        gte(articles.fetchedAt, sql`${dateKey}::date`),
-        lt(articles.fetchedAt, sql`(${dateKey}::date + interval '1 day')`),
+        gte(articles.fetchedAt, sql`(${dateKey} || 'T00:00:00Z')::timestamptz`),
+        lt(
+          articles.fetchedAt,
+          sql`(${dateKey} || 'T00:00:00Z')::timestamptz + interval '1 day'`,
+        ),
         isNotNull(articles.aiSummary),
       ),
     )
@@ -60,12 +63,16 @@ export async function generateDigest(dateKey: string) {
   const validLeadId = dayArticles.some((a) => a.id === leadArticleId)
     ? leadArticleId
     : dayArticles[0].id;
+  const validatedBullets = bullets.map((b) => ({
+    text: b.text,
+    articleId: dayArticles.some((a) => a.id === b.articleId) ? b.articleId : null,
+  }));
 
   await db
     .insert(dailyDigests)
     .values({
       digestDate: dateKey,
-      bullets,
+      bullets: validatedBullets,
       articleIds: dayArticles.map((a) => a.id),
       leadArticleId: validLeadId,
     })

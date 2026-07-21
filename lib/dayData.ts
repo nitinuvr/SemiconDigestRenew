@@ -5,6 +5,7 @@ import {
   getDigestForDate,
   getMostRecentIngestDate,
 } from "@/lib/articles";
+import type { DigestBullet } from "@/components/home/DigestSidebar";
 import { formatLong, todayKey } from "@/lib/dates";
 import { groupArticlesByTag, topTagCounts } from "@/lib/tagCounts";
 import { isTag } from "@/lib/taxonomy";
@@ -60,11 +61,21 @@ export async function getDayData(requestedDateKey?: string) {
     }),
   );
 
+  // Resolve each bullet's articleId against the day's already-loaded
+  // articles (no extra query) so the UI can link straight to the source.
+  const resolvedBullets: DigestBullet[] = (digest?.bullets ?? []).map((b) => ({
+    text: b.text,
+    articleId: b.articleId,
+    url: b.articleId
+      ? (dayArticles.find((a) => a.id === b.articleId)?.url ?? null)
+      : null,
+  }));
+
   return {
     dateKey,
     dateLabel: formatLong(dateKey),
     articles: dayArticles,
-    bullets: digest?.bullets ?? [],
+    bullets: resolvedBullets,
     leadArticle,
     tagCounts,
     groupedByTag,
