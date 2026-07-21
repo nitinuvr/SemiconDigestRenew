@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Nitin's Daily Semicon Digest — a Next.js site that ingests semiconductor-industry news daily (NewsData.io), summarizes/tags/filters it with Claude, and displays it in an editorial layout (hero + digest sidebar, tag theme row, per-tag carousels). Deployed on Vercel at https://nitin-semicon-digest.vercel.app, with a daily Vercel Cron job driving ingestion.
+Nitin's Daily Semicon Digest — a Next.js site that ingests semiconductor-industry news daily (NewsData.io), summarizes/tags/filters it with Claude, and displays it in an editorial layout (hero + digest sidebar, tag theme row, per-tag carousels, plus a full `/archive` for browsing beyond one day). Deployed on Vercel at https://nitin-semicon-digest.vercel.app, with a daily Vercel Cron job driving ingestion.
 
 ## Commands
 
@@ -47,7 +47,15 @@ Everything buckets articles by **`fetchedAt`'s UTC calendar day**, not `publishe
 
 ### Tag taxonomy
 
-`lib/taxonomy.ts` is the single source of truth for the ~20 fixed tags — reused by the Claude structured-output schema (`ArticleAnalysisSchema`), the frontend theme row, and the options-menu tag list. The homepage's "top themes" row (`ThemeRow` + `lib/tagCounts.ts`) computes the top 15 by count **in-memory** from that day's already-fetched articles (not a separate SQL query) — see `lib/dayData.ts`. Each tag in that row gets its own `TagCarousel` below, anchored at `#tag-<slug>` (`tagSlug()` in `lib/taxonomy.ts`); the options-menu tag links and theme-row pills both navigate to that anchor.
+`lib/taxonomy.ts` is the single source of truth for the ~20 fixed tags — reused by the Claude structured-output schema (`ArticleAnalysisSchema`), the frontend theme row, and the options-menu tag list. The homepage's "top themes" row (`ThemeRow` + `lib/tagCounts.ts`) picks the top 15 tags by count **in-memory** from that day's already-fetched articles (not a separate SQL query) — see `lib/dayData.ts`. The row's pills no longer show a count, just the tag name (removed since it read as "today's count" but users expected it to mean the whole archive). Each tag in that row gets its own `TagCarousel` below, anchored at `#tag-<slug>` (`tagSlug()` in `lib/taxonomy.ts`); the options-menu tag links and theme-row pills both navigate to that anchor.
+
+### Archive: browsing beyond one day
+
+`getDayData()` (`lib/dayData.ts`) pads each tag's carousel past today's articles with up to `EXTRA_ARCHIVE_ARTICLES_PER_TAG` (10) older ones pulled from `getArchiveArticles()` (`lib/articles.ts`), offset by however many the tag already has today — since both queries sort `publishedAt desc`, this padding is exactly the *next* older articles for that tag, not a duplicate of what's already shown. `TagCarousel` receives the merged list plus `todayCount` (for the "N stories today" header, now distinct from the carousel's total item count) and `hasMoreInArchive`; when true, the carousel ends with a "View all {tag} articles" card linking to `/archive?tag=<tag>`.
+
+`/archive` (`app/archive/page.tsx`) is the standalone full-archive page: a flat, reverse-chronological grid (not day-grouped) over every retained article, filterable by tag and/or source via `ArchiveFilters` (plain `<select>`s — no shadcn `Select` primitive exists in this repo, so don't reach for one for a single page), with client-side "Load more" pagination (`ArchiveGrid`) backed by `GET /api/archive`. `getArchiveArticles()` avoids a separate `COUNT(*)` query by over-fetching `limit + 1` rows and slicing — `hasMore` is just `rows.length > limit`. Linked from the Options/Browse menu (`OptionsMenu.tsx`).
+
+**Gotcha:** `ArchiveGrid` fetches JSON from `/api/archive`, so `publishedAt`/`fetchedAt`/`createdAt`/`updatedAt` arrive as ISO strings, not `Date` objects — `ArticleCard` calls `.toISOString()` directly on `publishedAt`, so the fetched rows must be revived into real `Date`s before being appended to state (see `reviveArticleDates` in `ArchiveGrid.tsx`) or it throws at render time.
 
 ### Lazy client initialization
 
@@ -60,6 +68,8 @@ Postgres full-text search, not an external service — `articles.searchVector` i
 ### Design system
 
 Tokens live in `app/globals.css` (`--brand`, `--brand-orange`, `--header-background`, `--surface`, etc.), registered into Tailwind v4 via `@theme inline`. Dark mode is `next-themes` class-based (`.dark` overrides in the same file) — toggle in `components/layout/ThemeToggle.tsx`. Headings use `font-heading` (Space Grotesk), body uses `font-body` (Inter), both wired via `next/font` in `app/layout.tsx`.
+
+`TagCarousel`'s Embla `opts` use responsive `breakpoints` so the next/prev arrows page by however many cards are actually visible at that width (`slidesToScroll: 3/4/5` matching the `basis-1/3`/`1/4`/`1/5` breakpoints), with `dragFree: true` below `sm` for continuous touch-scroll instead of snapping one card at a time. Keep `slidesToScroll` in sync with the `CarouselItem` basis classes if either changes.
 
 ## Environment variables
 
