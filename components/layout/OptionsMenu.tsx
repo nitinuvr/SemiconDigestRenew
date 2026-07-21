@@ -44,6 +44,17 @@ export function OptionsMenu({ tags, sources }: OptionsMenuProps) {
           <SheetTitle>Browse</SheetTitle>
         </SheetHeader>
 
+        <SheetClose
+          render={
+            <Link
+              href="/archive"
+              className="mx-4 mt-2 block rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:border-brand hover:text-brand"
+            >
+              Archive — all articles
+            </Link>
+          }
+        />
+
         <Accordion className="px-4 pb-6">
           <AccordionItem value="tags">
             <AccordionTrigger>Tags ({tags.length})</AccordionTrigger>

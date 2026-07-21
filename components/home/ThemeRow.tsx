@@ -17,14 +17,13 @@ export function ThemeRow({ tagCounts }: ThemeRowProps) {
           Today&apos;s top themes
         </h2>
         <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {tagCounts.map(({ tag, count }) => (
+          {tagCounts.map(({ tag }) => (
             <Link
               key={tag}
               href={`#tag-${tagSlug(tag)}`}
               className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-4 py-1.5 text-sm font-medium whitespace-nowrap text-foreground/80 transition-colors hover:border-brand hover:text-brand"
             >
               {tag}
-              <span className="text-xs text-muted-foreground">{count}</span>
             </Link>
           ))}
         </div>
