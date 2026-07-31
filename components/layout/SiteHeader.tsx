@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ArchiveLink } from "@/components/layout/ArchiveLink";
+import { HelpButton } from "@/components/layout/HelpButton";
 import { OptionsMenu } from "@/components/layout/OptionsMenu";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { NewsletterSignup } from "@/components/newsletter/NewsletterSignup";
@@ -54,6 +55,7 @@ export async function SiteHeader() {
           <ArchiveLink />
           <NewsletterSignup />
           <ThemeToggle />
+          <HelpButton />
         </div>
       </div>
     </header>
