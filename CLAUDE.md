@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Nitin's Daily Semicon Digest — a Next.js site that ingests semiconductor-industry news daily (NewsData.io), summarizes/tags/filters it with Claude, and displays it in an editorial layout (hero + digest sidebar, tag theme row, per-tag carousels, plus a full `/archive` for browsing beyond one day). Deployed on Vercel at https://nitin-semicon-digest.vercel.app, with a daily Vercel Cron job driving ingestion.
+Nitin's Daily Semicon Digest — a Next.js site that ingests semiconductor-industry news daily (NewsData.io), summarizes/tags/filters it with Claude, and displays it in an editorial layout (hero + digest sidebar, tag theme row, per-tag carousels, plus a full `/archive` for browsing beyond one day), with a weekly email digest via Buttondown. Deployed on Vercel at https://nitin-semicon-digest.vercel.app, with daily and weekly Vercel Cron jobs driving ingestion and the newsletter.
 
 ## Commands
 
@@ -83,6 +83,8 @@ Unlike tags, `articles.companies` (`text[]`, GIN-indexed) is **not** a fixed tax
 
 **Gotcha:** `ArchiveGrid` fetches JSON from `/api/archive`, so `publishedAt`/`fetchedAt`/`createdAt`/`updatedAt` arrive as ISO strings, not `Date` objects — `ArticleCard` calls `.toISOString()` directly on `publishedAt`, so the fetched rows must be revived into real `Date`s before being appended to state (see `reviveArticleDates` in `ArchiveGrid.tsx`) or it throws at render time.
 
+The header used to have a `DateNav` calendar-picker (pick a date, jump to `/articles/[date]`) — removed in favor of `components/layout/ArchiveLink.tsx`, a plain link straight to `/archive`, since date-jump UI assumes a reader already knows which specific date they want, a rare way to browse news compared to the archive's recency/tag/source/company filtering. **`/articles/[date]` itself is still fully live and unrelated to this removal** — nothing in the current UI links to it directly anymore, but the weekly newsletter (below) links each story back to its `digestDate` there, so don't assume the route is dead code.
+
 ### Lazy client initialization
 
 `lib/db/index.ts` and `lib/anthropic/client.ts` construct their clients lazily (a `Proxy` for `db`, a memoized getter `getAnthropicClient()` for Claude) instead of throwing at module import time when an env var is missing. This matters because Next.js route modules import the whole dependency graph eagerly — a top-level throw in `lib/anthropic/client.ts` used to crash the cron route's auth check itself (returning 500 instead of 401) whenever `ANTHROPIC_API_KEY` was unset, even though that route path never touches Claude. Keep new server-only clients lazy for the same reason.
@@ -91,9 +93,15 @@ Unlike tags, `articles.companies` (`text[]`, GIN-indexed) is **not** a fixed tax
 
 Postgres full-text search, not an external service — `articles.searchVector` is a **generated `tsvector` column** (see the `GENERATED ALWAYS AS ... STORED` in the Drizzle schema / migration), weighted title > summary > snippet, with a GIN index. `lib/search.ts` queries it via `ts_rank` + `plainto_tsquery`.
 
-`components/search/SearchBar.tsx` renders two responsive branches internally (no changes needed in `SiteHeader.tsx`, same pattern as `DateNav`/`OptionsMenu`'s icon-vs-label swap): the always-visible desktop form (focusable via a `/` keyboard shortcut, ignored while already typing in an input/textarea), and below `sm` a magnifying-glass icon that expands into a `fixed` full-width overlay instead of being hidden entirely. Desktop and mobile use separate refs — they're different DOM nodes that can both be mounted depending on viewport.
+`components/search/SearchBar.tsx` renders two responsive branches internally (no changes needed in `SiteHeader.tsx`, same icon-vs-label swap pattern as `ArchiveLink`): the always-visible desktop form (focusable via a `/` keyboard shortcut, ignored while already typing in an input/textarea), and below `sm` a magnifying-glass icon that expands into a `fixed` full-width overlay instead of being hidden entirely. Desktop and mobile use separate refs — they're different DOM nodes that can both be mounted depending on viewport.
 
 **Testing gotcha**: the Chrome automation tooling (`claude-in-chrome`) has repeatedly shown false negatives on this specific Suspense-wrapped component and on the custom `Select` dropdowns below — simulated clicks/keypresses sometimes don't register or the popup won't stay open for a screenshot, even though a manual `.click()` via `javascript_tool` or the real user confirms it works fine. If browser automation says search or a dropdown is broken, verify with the user directly before concluding it's a real bug.
+
+### Weekly newsletter
+
+`lib/newsletter/generateWeeklyNewsletter.ts`, run by `app/api/cron/weekly-newsletter/route.ts` every Friday (`0 13 * * 5` in `vercel.json`, one hour after that day's daily-ingest so Monday–Friday digests all exist), summarizes the trailing 7 days of `daily_digests` bullets into a lead story (with its article's image) plus a numbered list of the rest, rendered as Markdown and posted to Buttondown as a draft — mirrors the homepage's hero + "Top 5, in brief" layout. **Buttondown was chosen over EmailOctopus specifically because EmailOctopus's API is read-only for campaigns** (no way to create/send one programmatically) — worth remembering if evaluating ESPs for anything else here.
+
+**Sending is manual by design**: `NEWSLETTER_AUTO_SEND` (env var, `false` in prod) gates the actual send — the cron always drafts, never sends, until this is flipped to `"true"` after a few weeks of reviewing real output. A recurring Friday calendar reminder prompts checking the Buttondown dashboard and sending by hand in the meantime. Subscriber state (opt-in, unsubscribe, compliance footer) lives entirely in Buttondown — no local `subscribers` table.
 
 ### Design system
 
@@ -107,7 +115,7 @@ Tokens live in `app/globals.css` (`--brand`, `--brand-orange`/`--brand-orange-fo
 
 ## Environment variables
 
-See `.env.example` (itself gitignored via the repo's `.env*` pattern — it's a local reference only, not committed, so don't expect `git diff` to show edits to it). Required for anything beyond `npm run seed` + browsing seeded data: `DATABASE_URL` (Neon), `ANTHROPIC_API_KEY`, `NEWSDATA_API_KEY`, `CRON_SECRET`. Models default to `claude-sonnet-5` via `ANTHROPIC_ARTICLE_MODEL` / `ANTHROPIC_DIGEST_MODEL` (switched down from `claude-opus-4-8` to cut ingestion cost — validated via a real `test-ingest` run that summary/tag/company-extraction quality holds up fine on Sonnet).
+See `.env.example` (itself gitignored via the repo's `.env*` pattern — it's a local reference only, not committed, so don't expect `git diff` to show edits to it). Required for anything beyond `npm run seed` + browsing seeded data: `DATABASE_URL` (Neon), `ANTHROPIC_API_KEY`, `NEWSDATA_API_KEY`, `CRON_SECRET`, and `BUTTONDOWN_API_KEY` (newsletter subscribe/send). Models default to `claude-sonnet-5` via `ANTHROPIC_ARTICLE_MODEL` / `ANTHROPIC_DIGEST_MODEL` / `ANTHROPIC_NEWSLETTER_MODEL` (switched down from `claude-opus-4-8` to cut ingestion cost — validated via a real `test-ingest` run that summary/tag/company-extraction quality holds up fine on Sonnet).
 
 ## Deployment
 
@@ -115,6 +123,6 @@ Deployed via the **Vercel CLI directly** (`vercel --prod --yes`), not just git p
 
 - **`.vercelignore` excludes `.env`** — without it, `vercel --prod` uploads the whole working directory (not just git-tracked files) and bundles your local `.env` into the build source. Vercel's own env vars still take precedence at runtime, but don't remove that ignore file.
 - The production domain (`nitin-semicon-digest.vercel.app`) is registered as a real **Project Domain** (Settings → Domains in the dashboard), not a CLI-set alias. That distinction matters twice: (1) only real Domains auto-follow every new production deployment — a bare `vercel alias set` has to be re-run manually after each deploy; (2) only real Domains are exempt from the project's `ssoProtection: all_except_custom_domains` setting — a CLI-only alias redirects visitors to a Vercel login page.
-- `vercel.json` schedules the cron at `0 11 * * *` (11:00 UTC daily) hitting `/api/cron/daily-ingest`, authenticated via `Authorization: Bearer $CRON_SECRET`.
+- `vercel.json` schedules two crons, both authenticated via `Authorization: Bearer $CRON_SECRET`: `/api/cron/daily-ingest` at `0 12 * * *` (12:00 UTC daily) and `/api/cron/weekly-newsletter` at `0 13 * * 5` (13:00 UTC Fridays).
 - If production looks stuck serving stale content (check response headers for `X-Vercel-Cache: STALE` with a large `Age`), suspect a DB schema change applied ahead of deployed code — see the shared-database warning above. Deploying the matching code is usually the fix.
 - **Vercel's production environment variables explicitly pin `ANTHROPIC_ARTICLE_MODEL`/`ANTHROPIC_DIGEST_MODEL`** (and likely others) rather than relying on the code defaults in `lib/anthropic/client.ts` — changing a default there does *nothing* in production until the matching Vercel env var is also updated (`vercel env rm <NAME> production` then `vercel env add <NAME> production`). Check `vercel env pull` before assuming a code-level default change took effect live.
