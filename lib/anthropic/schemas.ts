@@ -59,3 +59,42 @@ export const DigestResultSchema = z.object({
 });
 
 export type DigestResult = z.infer<typeof DigestResultSchema>;
+
+export const NewsletterResultSchema = z.object({
+  subject: z
+    .string()
+    .describe("Email subject line, punchy, under ~70 characters, no clickbait."),
+  intro: z
+    .string()
+    .describe("A 1-2 sentence intro blurb for the week, plain text, no markdown."),
+  picks: z
+    .array(
+      z.object({
+        headline: z
+          .string()
+          .describe(
+            "A punchy headline for this story, distinct from the literal daily-digest bullet text.",
+          ),
+        blurb: z
+          .string()
+          .describe("A 1-2 sentence expansion suitable for a weekly-email reader."),
+        digestDate: z
+          .string()
+          .describe(
+            "The digest_date (yyyy-MM-dd, from the dates given) this pick is drawn from.",
+          ),
+        articleId: z
+          .string()
+          .describe(
+            "The id of the article this pick is drawn from, copied from the '[id: ...]' prefix on the source bullet (or \"none\" if that bullet had no id).",
+          ),
+      }),
+    )
+    .min(6)
+    .max(10)
+    .describe(
+      "The 6-10 most important, distinct stories of the week, ordered by importance, deduplicated across days a story recurred in.",
+    ),
+});
+
+export type NewsletterResult = z.infer<typeof NewsletterResultSchema>;

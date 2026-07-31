@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { DateNav } from "@/components/home/DateNav";
 import { OptionsMenu } from "@/components/layout/OptionsMenu";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { NewsletterSignup } from "@/components/newsletter/NewsletterSignup";
 import { SearchBar } from "@/components/search/SearchBar";
 import { getDistinctSources } from "@/lib/articles";
 import { TAXONOMY } from "@/lib/taxonomy";
@@ -51,6 +52,7 @@ export async function SiteHeader() {
             <SearchBar />
           </Suspense>
           <DateNav />
+          <NewsletterSignup />
           <ThemeToggle />
         </div>
       </div>
