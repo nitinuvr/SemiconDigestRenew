@@ -50,7 +50,7 @@ export function OptionsMenu({ tags, sources }: OptionsMenuProps) {
               href="/archive"
               className="mx-4 mt-2 block rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:border-brand hover:text-brand"
             >
-              Archive — all articles
+              Browse past articles
             </Link>
           }
         />

@@ -12,14 +12,6 @@ export function utcDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/**
- * yyyy-MM-dd for the given Date in the caller's local timezone — used only
- * for "the calendar day a visitor picked" in the browser date picker.
- */
-export function dateKey(date: Date): string {
-  return format(date, "yyyy-MM-dd");
-}
-
 /** UTC-midnight Date, RETENTION_DAYS before the current UTC day. */
 export function earliestRetainedDate(): Date {
   const [y, m, d] = todayKey().split("-").map(Number);
