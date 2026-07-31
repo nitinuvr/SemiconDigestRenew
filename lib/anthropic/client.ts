@@ -19,3 +19,5 @@ export const ARTICLE_MODEL =
   process.env.ANTHROPIC_ARTICLE_MODEL ?? "claude-sonnet-5";
 export const DIGEST_MODEL =
   process.env.ANTHROPIC_DIGEST_MODEL ?? "claude-sonnet-5";
+export const NEWSLETTER_MODEL =
+  process.env.ANTHROPIC_NEWSLETTER_MODEL ?? "claude-sonnet-5";

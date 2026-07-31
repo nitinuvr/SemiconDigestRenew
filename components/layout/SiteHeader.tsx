@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { DateNav } from "@/components/home/DateNav";
+import { ArchiveLink } from "@/components/layout/ArchiveLink";
+import { HelpButton } from "@/components/layout/HelpButton";
 import { OptionsMenu } from "@/components/layout/OptionsMenu";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { NewsletterSignup } from "@/components/newsletter/NewsletterSignup";
 import { SearchBar } from "@/components/search/SearchBar";
 import { getDistinctSources } from "@/lib/articles";
 import { TAXONOMY } from "@/lib/taxonomy";
@@ -50,8 +52,10 @@ export async function SiteHeader() {
           >
             <SearchBar />
           </Suspense>
-          <DateNav />
+          <ArchiveLink />
+          <NewsletterSignup />
           <ThemeToggle />
+          <HelpButton />
         </div>
       </div>
     </header>
