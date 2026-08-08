@@ -1,5 +1,5 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, gte, inArray, lte } from "drizzle-orm";
 import { NEWSLETTER_MODEL, getAnthropicClient } from "@/lib/anthropic/client";
 import { NEWSLETTER_SYSTEM_PROMPT } from "@/lib/anthropic/prompts";
 import { NewsletterResultSchema } from "@/lib/anthropic/schemas";
@@ -11,9 +11,18 @@ import { articles, dailyDigests } from "@/lib/db/schema";
 const MIN_BULLETS_FOR_NEWSLETTER = 15;
 
 type Pick = { headline: string; blurb: string; digestDate: string; articleId: string | null };
+type ResolvedPick = Pick & { articleUrl: string | null };
 
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+}
+
+function pickUrl(p: ResolvedPick): string {
+  // Falls back to the day's article page only for the rare case where the
+  // model's articleId didn't validate against that day's candidates — the
+  // article's own URL is always preferred since it points at the exact
+  // story instead of everything fetched that day.
+  return p.articleUrl ?? `${siteUrl()}/articles/${p.digestDate}`;
 }
 
 function renderNewsletterMarkdown({
@@ -23,24 +32,21 @@ function renderNewsletterMarkdown({
   otherPicks,
 }: {
   intro: string;
-  leadPick: Pick;
+  leadPick: ResolvedPick;
   leadImageUrl: string | null;
-  otherPicks: Pick[];
+  otherPicks: ResolvedPick[];
 }): string {
   const leadSection = [
     leadImageUrl ? `![](${leadImageUrl})` : null,
     `## ${leadPick.headline}`,
     leadPick.blurb,
-    `[Read more](${siteUrl()}/articles/${leadPick.digestDate})`,
+    `[Read more](${pickUrl(leadPick)})`,
   ]
     .filter(Boolean)
     .join("\n\n");
 
   const listItems = otherPicks
-    .map(
-      (p, i) =>
-        `${i + 1}. **${p.headline}** — ${p.blurb} ([Read more](${siteUrl()}/articles/${p.digestDate}))`,
-    )
+    .map((p, i) => `${i + 1}. **${p.headline}** — ${p.blurb} ([Read more](${pickUrl(p)}))`)
     .join("\n");
 
   return [intro, leadSection, "---", "This week's other top stories:", listItems].join("\n\n");
@@ -123,17 +129,26 @@ export async function generateWeeklyNewsletter() {
     );
   }
 
-  const [leadPick, ...otherPicks] = validPicks;
+  const pickArticleIds = validPicks
+    .map((p) => p.articleId)
+    .filter((id): id is string => id !== null);
 
-  let leadImageUrl: string | null = null;
-  if (leadPick.articleId) {
-    const [row] = await db
-      .select({ imageUrl: articles.imageUrl })
-      .from(articles)
-      .where(eq(articles.id, leadPick.articleId))
-      .limit(1);
-    leadImageUrl = row?.imageUrl ?? null;
-  }
+  const articleRows = pickArticleIds.length
+    ? await db
+        .select({ id: articles.id, url: articles.url, imageUrl: articles.imageUrl })
+        .from(articles)
+        .where(inArray(articles.id, pickArticleIds))
+    : [];
+  const articleById = new Map(articleRows.map((row) => [row.id, row]));
+
+  const resolvedPicks: ResolvedPick[] = validPicks.map((p) => ({
+    ...p,
+    articleUrl: (p.articleId && articleById.get(p.articleId)?.url) || null,
+  }));
+
+  const [leadPick, ...otherPicks] = resolvedPicks;
+  const leadImageUrl =
+    (leadPick.articleId && articleById.get(leadPick.articleId)?.imageUrl) || null;
 
   const body = renderNewsletterMarkdown({ intro, leadPick, leadImageUrl, otherPicks });
   const draft = await createDraftEmail({ subject, body });

@@ -74,9 +74,16 @@ export async function createDraftEmail({
   subject: string;
   body: string;
 }): Promise<{ id: string }> {
+  // Forces Buttondown's plain markdown editor instead of its "fancy" WYSIWYG
+  // editor. The fancy editor doesn't reliably round-trip markdown generated
+  // here (images/headings/lists sitting right next to each other) — opening
+  // a "fancy"-tagged draft and saving even a trivial edit has flattened the
+  // whole body into one inert HTML <p>, silently dropping every image and
+  // all formatting.
+  const taggedBody = `<!-- buttondown-editor-mode: markdown -->\n${body}`;
   const res = await buttondownFetch("/emails", {
     method: "POST",
-    body: JSON.stringify({ subject, body, status: "draft" }),
+    body: JSON.stringify({ subject, body: taggedBody, status: "draft" }),
   });
   if (!res.ok) {
     throw new Error(
